@@ -9,32 +9,42 @@
 #include <stdbool.h>
 
 #include "shared_mem.h"
+#include "protocol.h"
 
-void *create_and_map_shared_fd(size_t size, int *shm_fd) {
+void *create_and_map_shm_id(size_t size, int *shm_id) {
     int fd = -1;
     char *path = malloc(0);
     while (true) {
         free(path);
-        int rand_num = rand() % (1 << 20);
+        int rand_num = rand() % (1 << 25);
         asprintf(&path, "/simple_hashtable.%d", rand_num);
         fd = shm_open(path, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR | S_IROTH);
-        *shm_fd = fd;
+        *shm_id = rand_num;
         if (fd >= 0) { break; }
         if (errno != EEXIST) { return NULL; }
     }
     if (ftruncate(fd, size) < 0) {
         return NULL;
     }
-    char *addr = map_shared_fd(fd, size);
+    char *addr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     // shm_unlink(path);
     free(path);
-
 
     return addr;
 }
 
-void *map_shared_fd(int fd, size_t size) {
-    return mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+void *map_shm_id(int id, size_t size) {
+    char *path;
+    asprintf(&path, "%s.%d", SHM_ID_PREFIX, id);
+    int fd = shm_open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR | S_IROTH);
+    if (fd < 0) {
+        free(path);
+        return NULL;
+    }
+    void *addr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    shm_unlink(path);
+    free(path);
+    return addr;
 }
 
 int create_named_shared_fd(char *path, size_t size) {

@@ -4,6 +4,8 @@
 #include <semaphore.h>
 #include <stdbool.h>
 
+#define SHM_ID_PREFIX "/simple_hashtable"
+
 typedef enum {
     INSERT = 10,
     READ,
@@ -22,7 +24,7 @@ typedef struct {
     size_t key_len;
     size_t value_len;
     OperationResponseType response_type;
-    int response_fd;
+    int response_shm_id;
     char request_buffer[];
 } RequestHeader;
 
@@ -30,7 +32,7 @@ typedef struct {
     char available;
     sem_t semaphore;
     size_t request_size;
-    int request_fd;
+    int request_shm_id;
 } WorkerSlot;
 
 typedef struct {

@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         server_error("Request pool %s creation failed, error: %s", request_pool_path, strerror(errno));
     }
     server_log("Request pool created, fd: %d path: %s", request_pool_fd, request_pool_path);
-    request_pool = map_shared_fd(request_pool_fd, request_pool_mem_size);
+    request_pool = mmap(NULL, request_pool_mem_size, PROT_READ | PROT_WRITE, MAP_SHARED, request_pool_fd, 0);
     server_log("Request pool mapped, address %p", request_pool);
     request_pool->slot_num = worker_num;
     if (sem_init(&request_pool->available_slot_sem, PTHREAD_PROCESS_SHARED, 0) != 0) {

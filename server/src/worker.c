@@ -15,7 +15,7 @@
 
 thread_local int id;
 thread_local WorkerSlot *slot;
-thread_local int response_fd;
+thread_local int response_shm_id;
 thread_local char *response_buffer;
 thread_local size_t response_buffer_size;
 
@@ -33,7 +33,7 @@ void expand_response_buffer(size_t target_size) {
 void pack_success(RequestHeader *request, MemChunk value) {
     request->response_type = SUCCESS;
     request->key_len = value.len;
-    request->response_fd = response_fd;
+    request->response_shm_id = response_shm_id;
     if (response_buffer_size < value.len) {
         expand_response_buffer(value.len);
     }
@@ -46,11 +46,12 @@ void pack_success(RequestHeader *request, MemChunk value) {
 void pack_empty(RequestHeader *request, OperationResponseType type) {
     request->response_type = type;
     request->key_len = 0;
-    request->response_fd = -1;
+    request->response_shm_id = -1;
 }
 
-void process_request(int request_fd, size_t request_size) {
-    RequestHeader *request = map_shared_fd(request_fd, request_size);
+void process_request(int request_shm_id, size_t request_size) {
+    printf("shm_id is %d, size is %ld\n", request_shm_id, request_size);
+    RequestHeader *request = map_shm_id(request_shm_id, request_size);
     MemChunk key;
     key.len = request->key_len;
     key.content = malloc(key.len);
@@ -68,6 +69,7 @@ void process_request(int request_fd, size_t request_size) {
         MemChunk value;
         value.len = request->value_len;
         value.content = malloc(value.len);
+        printf("INSERT, key len %ld, value len %ld\n", key.len, value.len);
         memcpy(value.content, request->request_buffer + key.len, value.len);
         hashtable_insert(server_table, key, value);
         pack_empty(request, SUCCESS);
@@ -88,7 +90,7 @@ void *worker_main(void *arg) {
     id = (long)arg;
     slot = &request_pool->slots[id];
     response_buffer_size = PAGE_SIZE;
-    response_buffer = create_and_map_shared_fd(response_buffer_size, &response_fd);
+    response_buffer = create_and_map_shm_id(response_buffer_size, &response_shm_id);
     server_log("worker %d successfully initiated", id);
     while (true) {
         if (slot->available == false) {
@@ -98,7 +100,7 @@ void *worker_main(void *arg) {
         int wait_error = sem_wait(&slot->semaphore);
         switch (wait_error) {
         case 0: {
-            process_request(slot->request_fd, slot->request_size);
+            process_request(slot->request_shm_id, slot->request_size);
         } break;
         case EINTR: {
             continue;

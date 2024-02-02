@@ -22,7 +22,7 @@ void execute_current() {
     // build shared request body
     size_t request_body_size = sizeof(RequestHeader) + current_command.key_len + current_command.value_len;
     int request_body_fd = -1;
-    RequestHeader *request_body = create_and_map_shared_fd(request_body_size, &request_body_fd);
+    RequestHeader *request_body = create_and_map_shm_id(request_body_size, &request_body_fd);
 
     request_body->request_type = current_command.type;
     sem_init(&request_body->semaphore, 1, 0);
@@ -51,7 +51,7 @@ void execute_current() {
         }
     }
     WorkerSlot *slot = &request_pool->slots[worker_index];
-    slot->request_fd = request_body_fd;
+    slot->request_shm_id = request_body_fd;
     slot->request_size = request_body_size;
     // wake worker;
     sem_post(&slot->semaphore);
@@ -65,12 +65,12 @@ void execute_current() {
     }
 
     // read response
-    int response_fd = request_body->response_fd;
+    int response_shm_id = request_body->response_shm_id;
     int response_size = request_body->key_len;
     OperationResponseType response_type = request_body->response_type;
     switch (response_type) {
     case SUCCESS: {
-        char *response_body = map_shared_fd(response_fd, response_size);
+        char *response_body = map_shm_id(response_shm_id, response_size);
         char *value = malloc(response_size);
         memcpy(value, response_body, response_size);
         if ((response_size == current_command.value_len) && memcmp(value, current_command.value, response_size)) {
@@ -113,11 +113,11 @@ int main(int argc, char **argv) {
     // connect to request pool
     client_log("Connecting to server request pool");
     request_pool_fd = create_named_shared_fd(request_pool_path, 0);
-    request_pool = map_shared_fd(request_pool_fd, REQUEST_POOL_INITIAL_SIZE);
+    request_pool = mmap(NULL, REQUEST_POOL_INITIAL_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, request_pool_fd, 0);
     size_t request_pool_size = sizeof(RequestPool) + sizeof(WorkerSlot) * request_pool->slot_num;
     if (request_pool_size > REQUEST_POOL_INITIAL_SIZE) {
         munmap(request_pool, REQUEST_POOL_INITIAL_SIZE);
-        request_pool = map_shared_fd(request_pool_fd, request_pool_size);
+        request_pool = mmap(NULL, request_pool_size, PROT_READ | PROT_WRITE, MAP_SHARED, request_pool_fd, 0);
     }
 
     switch (client_mode) {
