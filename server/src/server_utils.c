@@ -7,6 +7,7 @@
 
 #include "server.h"
 #include "server_utils.h"
+#include "println.h"
 
 // print help message on how to use this program
 void print_help(char *path) {
@@ -60,21 +61,11 @@ int get_cpu_count() {
 // print log if verbose flag is set
 void server_log(char *format, ...) {
     if (verbose_flag) {
-        char *format_newline = malloc(sizeof(char) * (strlen(format) + 1));
-        sprintf(format_newline, "%s\n", format);
-        va_list args;
-        va_start(args, format);
-        vprintf(format_newline, args);
-        free(format_newline);
-        va_end(args);
+        println_varg_to(stdout, format);
     }
 }
 
 void server_error(char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    vfprintf(stderr, "\n", args);
-    va_end(args);
+    println_varg_to(stderr, format);
     exit(0);
 }
