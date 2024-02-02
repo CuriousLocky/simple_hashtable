@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <string.h>
 #include "hashtable.h"
 #include "server_utils.h"
 
@@ -140,12 +141,15 @@ int hashtable_insert(Hashtable *table, MemChunk key, MemChunk value) {
 MemChunk hashtable_search(Hashtable *table, MemChunk key) {
     MemChunk result = { 0, NULL };
     HashtableBlock *target_prev = rdlock_and_walk(table, key);
-    if (target_prev->next == NULL) {
+    HashtableBlock *target = target_prev->next;
+    if (target == NULL) {
         free(key.content);
         pthread_rwlock_unlock(&target_prev->next_lock);
         return result;
     }
-    result = target_prev->next->value;
+    result.len = target->value.len;
+    result.content = malloc(result.len);
+    memcpy(result.content, target->value.content, result.len);
     free(key.content);
     pthread_rwlock_unlock(&target_prev->next_lock);
     return result;
