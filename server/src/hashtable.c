@@ -109,8 +109,12 @@ static HashtableBlock *wrlock_and_walk(Hashtable *table, MemChunk key) {
 int hashtable_insert(Hashtable *table, MemChunk key, MemChunk value) {
     unsigned long key_hash = hash(key);
     HashtableBlock *target_prev = wrlock_and_walk(table, key);
+    server_log("finished wrlock and walk, target_prev is %p", target_prev);
     HashtableBlock *target_block = target_prev->next;
-    if (compare(target_block->key_hash, target_block->key, key_hash, key) == 0) {
+    if (
+        (target_block != NULL) &&
+        (compare(target_block->key_hash, target_block->key, key_hash, key) == 0)
+        ) {
         // key already in list, change value
         free(target_block->value.content);
         target_block->value.len = value.len;
@@ -118,6 +122,7 @@ int hashtable_insert(Hashtable *table, MemChunk key, MemChunk value) {
         pthread_rwlock_unlock(&target_prev->next_lock);
         return 0;
     }
+    server_log("creating new block and insert");
     // key not in list, create new block and insert
     HashtableBlock *new_block = malloc(sizeof(HashtableBlock));
     new_block->key = key;
@@ -153,7 +158,10 @@ MemChunk hashtable_delete(Hashtable *table, MemChunk key) {
     MemChunk result = { 0, NULL };
     HashtableBlock *target_prev = wrlock_and_walk(table, key);
     HashtableBlock *target_block = target_prev->next;
-    if (compare(target_block->key_hash, target_block->key, key_hash, key) != 0) {
+    if (
+        (target_block == NULL) ||
+        (compare(target_block->key_hash, target_block->key, key_hash, key) != 0)
+        ) {
         free(key.content);
         pthread_rwlock_unlock(&target_prev->next_lock);
         return result;

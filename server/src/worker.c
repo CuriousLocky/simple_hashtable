@@ -72,6 +72,7 @@ void process_request(int request_shm_id, size_t request_size) {
         printf("INSERT, key len %ld, value len %ld\n", key.len, value.len);
         memcpy(value.content, request->request_buffer + key.len, value.len);
         hashtable_insert(server_table, key, value);
+        server_log("finished insertion");
         pack_empty(request, SUCCESS);
     } break;
     case DELETE: {
