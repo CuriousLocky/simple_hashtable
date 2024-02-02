@@ -10,7 +10,7 @@ typedef struct {
     char *addr;
 } SharedMem;
 
-int create_shared_fd(char *path, size_t size);
+int create_shared_fd(size_t size);
 void *map_shared_fd(int fd, size_t size);
 int create_named_shared_fd(char *path, size_t size);
 
