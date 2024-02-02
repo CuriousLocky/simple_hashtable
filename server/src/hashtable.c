@@ -167,7 +167,7 @@ MemChunk hashtable_delete(Hashtable *table, MemChunk key) {
         return result;
     }
     free(key.content);
-    pthread_rwlock_rdlock(&target_block->next_lock);
+    pthread_rwlock_wrlock(&target_block->next_lock);
     target_prev->next = target_block->next;
     pthread_rwlock_unlock(&target_block->next_lock);
     pthread_rwlock_unlock(&target_prev->next_lock);
