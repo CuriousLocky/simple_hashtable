@@ -16,6 +16,8 @@ void print_help(char *path) {
     printf("\t--verbose/-v: verbose mode\n");
     printf("\t--size/-s {size-of-hashtable}: set the size of the hashtable, "
         "must be larget than zero, %d as default\n", DEFAULT_HASHTABLE_SIZE);
+    printf("\t--worker/-w {number-of-workers}: set the number of workers, "
+        "must be larger than zero, %d as default\n", DEFAULT_WORKER_NUM);
     printf("\t--help/-h: show this help message\n");
 }
 
