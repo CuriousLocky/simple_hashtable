@@ -22,10 +22,11 @@ void print_help(char *path) {
 struct option long_options[] = {
     {"verbose",     no_argument,  NULL,   'v' },
     {"size",        required_argument,  NULL,   's' },
+    {"worker",      required_argument,  NULL,   'w'},
     {"help",        no_argument,  NULL,   'h' },
     {0, 0, 0, 0}
 };
-char *short_options = "vs:h";
+char *short_options = "vs:w:h";
 // parse arguments and refuse invalid ones
 void parse_args(int argc, char **argv) {
     int c;
@@ -41,6 +42,14 @@ void parse_args(int argc, char **argv) {
         } break;
         case 'v': {
             verbose_flag = true;
+        } break;
+        case 'w': {
+            int num = atoi(optarg);
+            if (num <= 0) {
+                print_help(argv[0]);
+                exit(0);
+            }
+            worker_num = num;
         } break;
         default: {
             print_help(argv[0]);

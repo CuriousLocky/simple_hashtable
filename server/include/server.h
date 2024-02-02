@@ -10,6 +10,7 @@
 
 extern int hashtable_size;
 extern int verbose_flag;
+extern int worker_num;
 extern Hashtable *server_table;
 extern RequestPool *request_pool;
 extern WorkerNode *worker_pool;
