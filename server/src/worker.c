@@ -87,10 +87,8 @@ void process_request(int request_fd, size_t request_size) {
 void *worker_main(void *arg) {
     id = (long)arg;
     slot = &request_pool->slots[id];
-    // response_fd = create_shared_fd(id, response_buffer_size);
     response_buffer_size = PAGE_SIZE;
-    response_fd = create_shared_fd(response_buffer_size);
-    response_buffer = map_shared_fd(response_fd, response_buffer_size);
+    response_buffer = create_and_map_shared_fd(response_buffer_size, &response_fd);
     server_log("worker %d successfully initiated", id);
     while (true) {
         if (slot->available == false) {

@@ -21,8 +21,8 @@ RequestPool *request_pool = NULL;
 void execute_current() {
     // build shared request body
     size_t request_body_size = sizeof(RequestHeader) + current_command.key_len + current_command.value_len;
-    int request_body_fd = create_shared_fd(request_body_size);
-    RequestHeader *request_body = map_shared_fd(request_body_fd, request_body_size);
+    int request_body_fd = -1;
+    RequestHeader *request_body = create_and_map_shared_fd(request_body_size, &request_body_fd);
 
     request_body->request_type = current_command.type;
     sem_init(&request_body->semaphore, 1, 0);
@@ -33,12 +33,9 @@ void execute_current() {
 
     request_body->value_len = current_command.value_len;
     char *value_buffer = request_body->request_buffer + request_body->key_len;
-    memcpy(value_buffer, current_command.key, request_body->key_len);
+    memcpy(value_buffer, current_command.value, request_body->value_len);
 
     // wait for an empty slot
-    int available_slot = 0;
-    sem_getvalue(&request_pool->available_slot_sem, &available_slot);
-    printf("available_slot: %d\n", available_slot);
     sem_wait(&request_pool->available_slot_sem);
     int worker_index = -1;
     bool success = false;
@@ -54,6 +51,8 @@ void execute_current() {
         }
     }
     WorkerSlot *slot = &request_pool->slots[worker_index];
+    slot->request_fd = request_body_fd;
+    slot->request_size = request_body_size;
     // wake worker;
     sem_post(&slot->semaphore);
     printf("kicked worker %d\n", worker_index);
@@ -88,6 +87,8 @@ void execute_current() {
         client_log("internal_error");
     } break;
     }
+
+    munmap(request_body, request_body_size);
 }
 
 void interactive_loop() {

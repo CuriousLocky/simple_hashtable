@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 typedef enum {
-    INSERT,
+    INSERT = 10,
     READ,
     DELETE,
 } OperationRequestType;

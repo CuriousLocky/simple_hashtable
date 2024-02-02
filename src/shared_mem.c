@@ -10,7 +10,7 @@
 
 #include "shared_mem.h"
 
-int create_shared_fd(size_t size) {
+void *create_and_map_shared_fd(size_t size, int *shm_fd) {
     int fd = -1;
     char *path = malloc(0);
     while (true) {
@@ -18,17 +18,19 @@ int create_shared_fd(size_t size) {
         int rand_num = rand() % (1 << 20);
         asprintf(&path, "/simple_hashtable.%d", rand_num);
         fd = shm_open(path, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR | S_IROTH);
+        *shm_fd = fd;
         if (fd >= 0) { break; }
-        if (errno != EEXIST) { return fd; }
+        if (errno != EEXIST) { return NULL; }
     }
-    shm_unlink(path);
+    if (ftruncate(fd, size) < 0) {
+        return NULL;
+    }
+    char *addr = map_shared_fd(fd, size);
+    // shm_unlink(path);
     free(path);
 
-    if (ftruncate(fd, size) < 0) {
-        return -1;
-    }
 
-    return fd;
+    return addr;
 }
 
 void *map_shared_fd(int fd, size_t size) {
