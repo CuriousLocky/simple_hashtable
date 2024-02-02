@@ -20,9 +20,9 @@ void print_help(char *path) {
 }
 
 struct option long_options[] = {
-    {"verbose",     optional_argument,  NULL,   'v' },
+    {"verbose",     no_argument,  NULL,   'v' },
     {"size",        required_argument,  NULL,   's' },
-    {"help",        optional_argument,  NULL,   'h' },
+    {"help",        no_argument,  NULL,   'h' },
     {0, 0, 0, 0}
 };
 char *short_options = "vs:h";
@@ -30,7 +30,7 @@ char *short_options = "vs:h";
 Args parse_args(int argc, char **argv) {
     int c;
     Args args = { DEFAULT_HASHTABLE_SIZE, true };
-    while ((c = getopt_long(argc, argv, short_options, long_options, NULL) != -1)) {
+    while ((c = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
         switch (c) {
         case 's': {
             int size = atoi(optarg);
