@@ -27,9 +27,8 @@ struct option long_options[] = {
 };
 char *short_options = "vs:h";
 // parse arguments and refuse invalid ones
-Args parse_args(int argc, char **argv) {
+void parse_args(int argc, char **argv) {
     int c;
-    Args args = { DEFAULT_HASHTABLE_SIZE, true };
     while ((c = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
         switch (c) {
         case 's': {
@@ -38,10 +37,10 @@ Args parse_args(int argc, char **argv) {
                 print_help(argv[0]);
                 exit(0);
             }
-            args.hashtable_size = size;
+            hashtable_size = size;
         } break;
         case 'v': {
-            args.verbose = true;
+            verbose_flag = true;
         } break;
         default: {
             print_help(argv[0]);
@@ -49,7 +48,6 @@ Args parse_args(int argc, char **argv) {
         } break;
         }
     }
-    return args;
 }
 
 // read processor numbers
