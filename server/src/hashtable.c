@@ -145,7 +145,7 @@ MemChunk hashtable_search(Hashtable *table, MemChunk key) {
         free(key.content);
         return result;
     }
-    unsigned long key_hash = hash(key);
+    // unsigned long key_hash = hash(key);
     result.len = target->value.len;
     result.content = malloc(result.len);
     memcpy(result.content, target->value.content, result.len);
