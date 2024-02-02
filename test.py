@@ -41,7 +41,7 @@ def prepare_dir():
     for file in os.scandir(trace_dir):
         os.unlink(file.path)
         
-def run_test(server_s: int, server_w: int, client_num: int, entry: int, op: int):
+def run_test(server_s: int, server_w: int, client_num: int, entry: int, op: int) -> bool:
     prepare_dir()
     generate_trace(client_num, entry, op)
     outputs = []
@@ -52,7 +52,7 @@ def run_test(server_s: int, server_w: int, client_num: int, entry: int, op: int)
     for i in range(client_num):
         output_path = "{}/{}{}.{}".format(trace_dir, output_file_prefix, i, output_file_suffix)
         trace_path = "{}/{}{}.{}".format(trace_dir, trace_file_prefix, i, trace_file_suffix)
-        output_f = open(output_path, "w")
+        output_f = open(output_path, "a+")
         trace_f = open(trace_path, "r")
         client_processes.append(subprocess.Popen([client_bin], stdout=output_f, stdin=trace_f))
         outputs.append(output_f)
@@ -60,5 +60,34 @@ def run_test(server_s: int, server_w: int, client_num: int, entry: int, op: int)
     for client_p in client_processes:
         client_p.wait()
     server_process.kill()
-        
-run_test(1, 1, 1, 3, 9)
+    
+    for f in outputs:
+        f.seek(0)
+        lines: list[str] = f.readlines()
+        for line in lines:
+            if "failed" in line:
+                return False
+
+    return True
+
+tests = [
+    ([1, 1, 1, 10, 50],         "smoke"),
+    ([1, 1, 1, 300, 1500],      "big-smoke"),
+    ([1, 2, 1, 300, 1500],      "collaborate"),
+    ([1, 1, 5, 300, 1500],      "client-compete"),
+    ([2, 2, 5, 300, 1500],      "mess"),
+    ([5, 5, 10, 500, 5000],     "big-mess"),
+]
+
+for test in tests:
+    name:str = test[1]
+    args:list[int] = test[0]
+    print("running {}...".format(name))
+    pass_test = run_test(args[0], args[1], args[2], args[3], args[4])
+    if pass_test:
+        print("\tpass")
+    else:
+        print("\tfailed")
+        break
+    
+    
