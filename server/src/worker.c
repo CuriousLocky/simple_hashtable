@@ -52,12 +52,10 @@ void process_request(int request_shm_id, size_t request_size) {
     if (request == NULL) {
         server_error("worker %d mapping %d failed: %s", id, request_shm_id, strerror(errno));
     }
-    server_log("request mapped at %p", request);
     MemChunk key;
     key.len = request->key_len;
     key.content = malloc(key.len);
     memcpy(key.content, request->buffer, key.len);
-    server_log("worker %d loaded request", id);
     bool has_response = false;
     switch (request->request_type) {
     case READ: {
@@ -92,7 +90,6 @@ void process_request(int request_shm_id, size_t request_size) {
     } break;
     }
     sem_post(&request->server_post_sem);
-    server_log("unmapping %p, %ld", request, page_align(request_size));
     if (munmap(request, page_align(request_size)) != 0) {
         server_error("worker %d: unmapping failed %s", strerror(errno));
     }
