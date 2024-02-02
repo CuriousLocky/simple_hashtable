@@ -10,8 +10,9 @@ typedef struct {
     char *addr;
 } SharedMem;
 
-void *create_and_map_shm_id(size_t size, int *shm_id);
-void *map_shm_id(int id, size_t size);
+size_t page_align(size_t size);
+void *create_and_map_shm_id(size_t size, int *shm_id_p, int *fd_p);
+void *map_shm_id(int id, size_t size, int *fd_p);
 int close_shm_id(int id);
 int create_named_shared_fd(char *path, size_t size);
 

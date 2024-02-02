@@ -19,14 +19,19 @@ typedef enum {
 } OperationResponseType;
 
 typedef struct {
-    sem_t semaphore;
+    sem_t server_post_sem;
     OperationRequestType request_type;
     size_t key_len;
     size_t value_len;
     OperationResponseType response_type;
     int response_shm_id;
-    char request_buffer[];
+    char buffer[];
 } RequestHeader;
+
+typedef struct {
+    sem_t client_post_sem;
+    char buffer[];
+} ResponseHeader;
 
 typedef struct {
     char available;
