@@ -31,8 +31,11 @@ int create_named_shared_fd(char *path, size_t size) {
     if (fd < 0) {
         return fd;
     }
-    if (ftruncate(fd, size) < 0) {
-        return -1;
+    // if size is zero, do not zero it to set size
+    if (size != 0) {
+        if (ftruncate(fd, size) < 0) {
+            return -1;
+        }
     }
     return fd;
 }
