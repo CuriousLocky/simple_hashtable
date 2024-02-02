@@ -38,7 +38,6 @@ void *create_and_map_shm_id(size_t size, int *shm_id_p, int *fd_p) {
     char *addr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     // shm_unlink(path);
     free(path);
-    printf("id %d created size %ld\n", *shm_id_p, size);
     return addr;
 }
 
@@ -57,7 +56,6 @@ void *map_shm_id(int id, size_t size, int *fd_p) {
     }
     void *addr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     free(path);
-    printf("id %d mapped size %ld\n", id, size);
     return addr;
 }
 
