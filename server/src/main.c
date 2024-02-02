@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "server.h"
 #include "server_utils.h"
@@ -17,6 +18,11 @@ int worker_num = DEFAULT_WORKER_NUM;
 RequestPool *request_pool = NULL;
 WorkerNode *worker_pool = NULL;
 char *request_pool_path = "/simple_hashtable.request_pool";
+
+void clean_request_pool() {
+    shm_unlink(request_pool_path);
+    exit(0);
+}
 
 int main(int argc, char **argv) {
     parse_args(argc, argv);
@@ -34,6 +40,8 @@ int main(int argc, char **argv) {
     if (request_pool_fd < 0) {
         server_error("Request pool %s creation failed, error: %s", request_pool_path, strerror(errno));
     }
+    signal(SIGINT, clean_request_pool);
+
     server_log("Request pool created, fd: %d path: %s", request_pool_fd, request_pool_path);
     request_pool = mmap(NULL, request_pool_mem_size, PROT_READ | PROT_WRITE, MAP_SHARED, request_pool_fd, 0);
     server_log("Request pool mapped, address %p", request_pool);

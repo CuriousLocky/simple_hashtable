@@ -12,7 +12,7 @@ typedef struct {
 
 void *create_and_map_shm_id(size_t size, int *shm_id);
 void *map_shm_id(int id, size_t size);
-// void *map_shared_fd(int fd, size_t size);
+int close_shm_id(int id);
 int create_named_shared_fd(char *path, size_t size);
 
 #endif

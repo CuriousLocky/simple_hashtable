@@ -39,14 +39,17 @@ ClientCommand parse_command(char *cmd_str) {
     sscanf(key_str, "%ms", &result_command.key);
     result_command.key_len = strlen(key_str) + 1;
 
-    // parse value if command is VERIFY or INSERT
+    // parse value 
     char *value_str = strtok(NULL, delim);
     if (value_str != NULL) {
-        sscanf(key_str, "%ms", &result_command.value);
+        sscanf(value_str, "%ms", &result_command.value);
         result_command.value_len = strlen(value_str) + 1;
     } else if (result_command.type == INSERT) {
         // INSERT requires value
         parse_command_failed(cmd_str);
+    } else {
+        result_command.value = malloc(1);
+        *result_command.value = '\0';
     }
 
     free(cmd_str_copy);

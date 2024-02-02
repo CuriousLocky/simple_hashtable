@@ -15,38 +15,21 @@
 
 thread_local int id;
 thread_local WorkerSlot *slot;
-thread_local int response_shm_id;
-thread_local char *response_buffer;
-thread_local size_t response_buffer_size;
 
-#define PAGE_SIZE 4096
-static inline size_t page_align(size_t base) {
-    return PAGE_SIZE + (base & ~(PAGE_SIZE - 1));
-}
-
-void expand_response_buffer(size_t target_size) {
-    target_size = page_align(target_size);
-    response_buffer = mremap(response_buffer, response_buffer_size, target_size, MREMAP_MAYMOVE);
-    response_buffer_size = target_size;
-}
-
-void pack_success(RequestHeader *request, MemChunk value) {
+void pack_nonempty(RequestHeader *request, MemChunk value) {
+    int response_shm_id = -1;
+    char *response_buffer = create_and_map_shm_id(value.len, &response_shm_id);
     request->response_type = SUCCESS;
     request->key_len = value.len;
     request->response_shm_id = response_shm_id;
-    if (response_buffer_size < value.len) {
-        expand_response_buffer(value.len);
-    }
-    if (value.content != NULL) {
-        memcpy(response_buffer, value.content, value.len);
-        free(value.content);
-    }
+    memcpy(response_buffer, value.content, value.len);
+    free(value.content);
 }
 
 void pack_empty(RequestHeader *request, OperationResponseType type) {
     request->response_type = type;
     request->key_len = 0;
-    request->response_shm_id = response_shm_id;
+    request->response_shm_id = -1;
 }
 
 void process_request(int request_shm_id, size_t request_size) {
@@ -62,7 +45,7 @@ void process_request(int request_shm_id, size_t request_size) {
         if (value.content == NULL) {
             pack_empty(request, NO_ELEMEMT);
         } else {
-            pack_success(request, value);
+            pack_nonempty(request, value);
         }
     } break;
     case INSERT: {
@@ -77,7 +60,11 @@ void process_request(int request_shm_id, size_t request_size) {
     } break;
     case DELETE: {
         MemChunk value = hashtable_delete(server_table, key);
-        pack_success(request, value);
+        if (value.content == NULL) {
+            pack_empty(request, NO_ELEMEMT);
+        } else {
+            pack_nonempty(request, value);
+        }
     } break;
     default: {
         server_log("worker %d: undefined request type %d", id, request->request_type);
@@ -85,13 +72,12 @@ void process_request(int request_shm_id, size_t request_size) {
     } break;
     }
     sem_post(&request->semaphore);
+    munmap(request, request_size);
 }
 
 void *worker_main(void *arg) {
     id = (long)arg;
     slot = &request_pool->slots[id];
-    response_buffer_size = PAGE_SIZE;
-    response_buffer = create_and_map_shm_id(response_buffer_size, &response_shm_id);
     server_log("worker %d successfully initiated", id);
     while (true) {
         if (slot->available == false) {

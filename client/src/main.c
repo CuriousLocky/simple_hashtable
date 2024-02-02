@@ -18,11 +18,15 @@ char *request_pool_path = "/simple_hashtable.request_pool";
 int request_pool_fd = -1;
 RequestPool *request_pool = NULL;
 
+void print_current() {
+    printf("key: %ld %s, value: %ld %s\n", current_command.key_len, current_command.key, current_command.value_len, current_command.value);
+}
+
 void execute_current() {
     // build shared request body
     size_t request_body_size = sizeof(RequestHeader) + current_command.key_len + current_command.value_len;
-    int request_body_fd = -1;
-    RequestHeader *request_body = create_and_map_shm_id(request_body_size, &request_body_fd);
+    int request_shm_id = -1;
+    RequestHeader *request_body = create_and_map_shm_id(request_body_size, &request_shm_id);
 
     request_body->request_type = current_command.type;
     sem_init(&request_body->semaphore, 1, 0);
@@ -51,7 +55,7 @@ void execute_current() {
         }
     }
     WorkerSlot *slot = &request_pool->slots[worker_index];
-    slot->request_shm_id = request_body_fd;
+    slot->request_shm_id = request_shm_id;
     slot->request_size = request_body_size;
     // wake worker;
     sem_post(&slot->semaphore);
@@ -68,39 +72,33 @@ void execute_current() {
     int response_shm_id = request_body->response_shm_id;
     size_t response_size = request_body->key_len;
     OperationResponseType response_type = request_body->response_type;
+    bool has_response_shm = (current_command.type != INSERT) && (response_type == SUCCESS);
     switch (response_type) {
     case SUCCESS: {
-        printf("response_shm_id %d, response_size %ld\n", response_shm_id, response_size);
+        if (
+            (current_command.type == INSERT) ||
+            (current_command.value_len == 0)
+            ) {
+            client_log("success");
+            break;
+        }
+        if (response_shm_id < 0) {
+            client_log("failed, get empty");
+            break;
+        }
         char *response_body = map_shm_id(response_shm_id, response_size);
         if (response_body == NULL) {
             client_error("Cannot map response: %s", strerror(errno));
         }
-        char *value = malloc(response_size);
-        memcpy(value, response_body, response_size);
-        switch (current_command.type) {
-        case INSERT: {
+        if (
+            (response_size == current_command.value_len) &&
+            (memcmp(response_body, current_command.value, response_size) == 0)
+            ) {
             client_log("success");
-        } break;
-        default: {
-            if (current_command.value_len == 0) {
-                client_log("success");
-            } else if (
-                (response_size == current_command.value_len) &&
-                (memcmp(value, current_command.value, response_size) == 0)
-                ) {
-                client_log("success");
-            } else {
-                char *expected = calloc(current_command.value_len + 1, 1);
-                memcpy(expected, current_command.value, current_command.value_len);
-                char *received = calloc(response_size + 1, 1);
-                memcpy(received, value, response_size);
-                client_log("check failed, expecting\n\t%ld[%s]\nget\n\t%ld[%s]", current_command.value_len, expected, response_size, received);
-                free(expected);
-                free(received);
-            }
-        } break;
+        } else {
+            client_log("failed, value different");
         }
-        free(value);
+        munmap(response_body, response_size);
     } break;
     case NO_ELEMEMT: {
         client_log("no_element");
@@ -109,8 +107,12 @@ void execute_current() {
         client_log("internal_error");
     } break;
     }
-
+    // print_current();
+    if (has_response_shm) {
+        close_shm_id(response_shm_id);
+    }
     munmap(request_body, request_body_size);
+    close_shm_id(request_shm_id);
 }
 
 void interactive_loop() {
@@ -122,6 +124,7 @@ void interactive_loop() {
             break;
         }
         current_command = parse_command(buffer);
+        print_current();
         execute_current();
         free(current_command.key);
         free(current_command.value);
