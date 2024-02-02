@@ -89,8 +89,7 @@ void process_request(int request_shm_id, size_t request_size) {
         }
     } break;
     default: {
-        server_log("worker %d: undefined request type %d", id, request->request_type);
-        pack_empty(request, INTERNAL_FAIL);
+        server_error("worker %d: undefined request type %d", id, request->request_type);
     } break;
     }
     sem_post(&request->server_post_sem);
@@ -99,7 +98,11 @@ void process_request(int request_shm_id, size_t request_size) {
     }
     close(request_fd);
     if (has_response) {
-        sem_wait(&response_buffer->client_post_sem);
+        while (sem_wait(&response_buffer->client_post_sem) < 0) {
+            if (errno != EINTR) {
+                server_error("Worker %d wait error: %s", strerror(errno));
+            }
+        }
     }
 }
 

@@ -60,7 +60,7 @@ static HashtableBlock *rdlock_and_walk(Hashtable *table, MemChunk key) {
     }
     next = curr->next;
 
-    while ((next != NULL) && (compare(next->key_hash, next->key, key_hash, key) < 0)) {
+    while ((next != NULL) && (compare(next->key_hash, next->key, key_hash, key) != 0)) {
         lock_error = pthread_rwlock_rdlock(&next->next_lock);
         if (lock_error != 0) {
             server_error("read lock error %d, slot %d, key length %d", lock_error, slot, key.len);
@@ -144,6 +144,10 @@ MemChunk hashtable_search(Hashtable *table, MemChunk key) {
         pthread_rwlock_unlock(&target_prev->next_lock);
         free(key.content);
         return result;
+    }
+    unsigned long key_hash = hash(key);
+    if (compare(target->key_hash, target->key, key_hash, key) != 0) {
+        exit(0);
     }
     result.len = target->value.len;
     result.content = malloc(result.len);
