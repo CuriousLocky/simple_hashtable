@@ -27,7 +27,7 @@ typedef struct {
 } RequestHeader;
 
 typedef struct {
-    bool available;
+    char available;
     sem_t semaphore;
     size_t request_size;
     int request_fd;
