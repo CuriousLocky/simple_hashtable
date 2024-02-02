@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-void println_to(FILE *file, char *format, ...);
+void println_to(FILE *file, char *format, va_list args);
 
 #define println_varg_to(file, format) {\
     va_list args;\
