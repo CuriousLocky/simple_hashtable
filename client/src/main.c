@@ -66,17 +66,39 @@ void execute_current() {
 
     // read response
     int response_shm_id = request_body->response_shm_id;
-    int response_size = request_body->key_len;
+    size_t response_size = request_body->key_len;
     OperationResponseType response_type = request_body->response_type;
     switch (response_type) {
     case SUCCESS: {
+        printf("response_shm_id %d, response_size %ld\n", response_shm_id, response_size);
         char *response_body = map_shm_id(response_shm_id, response_size);
+        if (response_body == NULL) {
+            client_error("Cannot map response: %s", strerror(errno));
+        }
         char *value = malloc(response_size);
         memcpy(value, response_body, response_size);
-        if ((response_size == current_command.value_len) && memcmp(value, current_command.value, response_size)) {
+        switch (current_command.type) {
+        case INSERT: {
             client_log("success");
-        } else {
-            client_log("check failed, expecting\n\t[%s]\nget\n\t[%s]", current_command.value, value);
+        } break;
+        default: {
+            if (current_command.value_len == 0) {
+                client_log("success");
+            } else if (
+                (response_size == current_command.value_len) &&
+                (memcmp(value, current_command.value, response_size) == 0)
+                ) {
+                client_log("success");
+            } else {
+                char *expected = calloc(current_command.value_len + 1, 1);
+                memcpy(expected, current_command.value, current_command.value_len);
+                char *received = calloc(response_size + 1, 1);
+                memcpy(received, value, response_size);
+                client_log("check failed, expecting\n\t%ld[%s]\nget\n\t%ld[%s]", current_command.value_len, expected, response_size, received);
+                free(expected);
+                free(received);
+            }
+        } break;
         }
         free(value);
     } break;
