@@ -75,12 +75,12 @@ def run_test(server_s: int, server_w: int, client_num: int, entry: int, op: int)
 tests = [
     ([1, 1, 1, 10, 50],         "smoke"),
     ([1, 1, 1, 300, 1500],      "big-smoke"),
-    ([1, 8, 10, 300, 1500],    "linear"),
     ([1, 2, 1, 300, 1500],      "collaborate"),
     ([1, 1, 5, 300, 1500],      "client-compete"),
+    ([1, 8, 10, 300, 1500],    "linear"),
     ([2, 2, 5, 300, 1500],      "mess"),
     ([5, 5, 10, 500, 5000],     "big-mess"),
-    ([64, 16, 40, 500, 5000],   "race"),
+    ([64, 16, 40, 1000, 10000],   "race"),
 ]
 
 for test in tests:
