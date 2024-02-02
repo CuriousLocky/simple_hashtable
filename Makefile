@@ -47,6 +47,9 @@ bin/client: $(CLIENT_OBJ) $(COMMON_OBJ)
 
 all: bin/server bin/client
 
+test: bin/server bin/client
+	python ./test.py
+
 clean:
-	rm -rf obj server/obj client/obj
+	rm -rf obj server/obj client/obj bin trace
 
