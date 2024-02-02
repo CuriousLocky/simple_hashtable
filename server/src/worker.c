@@ -46,7 +46,7 @@ void pack_success(RequestHeader *request, MemChunk value) {
 void pack_empty(RequestHeader *request, OperationResponseType type) {
     request->response_type = type;
     request->key_len = 0;
-    request->response_fd = 0;
+    request->response_fd = -1;
 }
 
 void process_request(int request_fd, size_t request_size) {
