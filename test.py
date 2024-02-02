@@ -45,9 +45,11 @@ def run_test(server_s: int, server_w: int, client_num: int, entry: int, op: int)
     prepare_dir()
     generate_trace(client_num, entry, op)
     outputs = []
+    server_output_path = "./trace/server_output.txt"
+    server_output = open(server_output_path, "w")
     server_arg_s = "-s {}".format(server_s)
     server_arg_w = "-w {}".format(server_w)
-    server_process = subprocess.Popen([server_bin, server_arg_s, server_arg_w])
+    server_process = subprocess.Popen([server_bin, server_arg_s, server_arg_w, "-v"], stdout=server_output)
     client_processes: list[subprocess.Popen] = []
     for i in range(client_num):
         output_path = "{}/{}{}.{}".format(trace_dir, output_file_prefix, i, output_file_suffix)
@@ -73,10 +75,12 @@ def run_test(server_s: int, server_w: int, client_num: int, entry: int, op: int)
 tests = [
     ([1, 1, 1, 10, 50],         "smoke"),
     ([1, 1, 1, 300, 1500],      "big-smoke"),
+    ([1, 8, 10, 300, 1500],    "linear"),
     ([1, 2, 1, 300, 1500],      "collaborate"),
     ([1, 1, 5, 300, 1500],      "client-compete"),
     ([2, 2, 5, 300, 1500],      "mess"),
     ([5, 5, 10, 500, 5000],     "big-mess"),
+    ([64, 16, 40, 500, 5000],   "race"),
 ]
 
 for test in tests:
