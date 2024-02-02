@@ -6,6 +6,7 @@
 #include <semaphore.h>
 #include <stdatomic.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "shared_mem.h"
 #include "client.h"
@@ -23,6 +24,14 @@ size_t request_buffer_size;
 int request_buffer_shm_id;
 int request_buffer_fd;
 RequestHeader *request_buffer;
+
+void clean_request_buffer() {
+    close_shm_id(request_buffer_shm_id);
+}
+
+void signal_handler() {
+    exit(0);
+}
 
 void expand_request_buffer(size_t target_size) {
     ftruncate(request_buffer_fd, target_size);
@@ -146,6 +155,8 @@ int main(int argc, char **argv) {
     // initiate request buffer
     request_buffer_size = 4096;
     request_buffer = create_and_map_shm_id(request_buffer_size, &request_buffer_shm_id, &request_buffer_fd);
+    atexit(clean_request_buffer);
+    signal(SIGINT, signal_handler);
     sem_init(&request_buffer->server_post_sem, 1, 0);
     parse_args(argc, argv);
     // connect to request pool

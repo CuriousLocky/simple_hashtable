@@ -21,6 +21,10 @@ thread_local ResponseHeader *response_buffer;
 thread_local int response_buffer_shm_id;
 thread_local int response_buffer_fd;
 
+void clean_response_buffer() {
+    close_shm_id(response_buffer_shm_id);
+}
+
 void expand_response_buffer(size_t target_size) {
     ftruncate(response_buffer_fd, target_size);
     response_buffer_size = target_size;
@@ -104,6 +108,7 @@ void *worker_main(void *arg) {
     slot = &request_pool->slots[id];
     response_buffer_size = 4096;
     response_buffer = create_and_map_shm_id(response_buffer_size, &response_buffer_shm_id, &response_buffer_fd);
+    atexit(clean_response_buffer);
     sem_init(&response_buffer->client_post_sem, 1, 0);
 
     server_log("worker %d successfully initiated", id);
