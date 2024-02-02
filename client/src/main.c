@@ -18,10 +18,6 @@ char *request_pool_path = "/simple_hashtable.request_pool";
 int request_pool_fd = -1;
 RequestPool *request_pool = NULL;
 
-void print_current() {
-    printf("key: %ld %s, value: %ld %s\n", current_command.key_len, current_command.key, current_command.value_len, current_command.value);
-}
-
 void execute_current() {
     // build shared request body
     size_t request_body_size = sizeof(RequestHeader) + current_command.key_len + current_command.value_len;
@@ -59,7 +55,6 @@ void execute_current() {
     slot->request_size = request_body_size;
     // wake worker;
     sem_post(&slot->semaphore);
-    printf("kicked worker %d\n", worker_index);
 
     // wait for request to be complete
     while (sem_wait(&request_body->semaphore) < 0) {
@@ -124,7 +119,6 @@ void interactive_loop() {
             break;
         }
         current_command = parse_command(buffer);
-        print_current();
         execute_current();
         free(current_command.key);
         free(current_command.value);
@@ -154,8 +148,7 @@ int main(int argc, char **argv) {
         execute_current();
     } break;
     default: {
-        fprintf(stderr, "Unknown client mode\n");
-        exit(-1);
+        client_error("Unknown client mode");
     } break;
     }
 }

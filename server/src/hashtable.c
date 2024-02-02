@@ -110,7 +110,6 @@ static HashtableBlock *wrlock_and_walk(Hashtable *table, MemChunk key) {
 int hashtable_insert(Hashtable *table, MemChunk key, MemChunk value) {
     unsigned long key_hash = hash(key);
     HashtableBlock *target_prev = wrlock_and_walk(table, key);
-    server_log("finished wrlock and walk, target_prev is %p", target_prev);
     HashtableBlock *target_block = target_prev->next;
     if (
         (target_block != NULL) &&
@@ -123,7 +122,6 @@ int hashtable_insert(Hashtable *table, MemChunk key, MemChunk value) {
         pthread_rwlock_unlock(&target_prev->next_lock);
         return 0;
     }
-    server_log("creating new block and insert");
     // key not in list, create new block and insert
     HashtableBlock *new_block = malloc(sizeof(HashtableBlock));
     new_block->key = key;

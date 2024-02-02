@@ -33,12 +33,12 @@ void pack_empty(RequestHeader *request, OperationResponseType type) {
 }
 
 void process_request(int request_shm_id, size_t request_size) {
-    printf("shm_id is %d, size is %ld\n", request_shm_id, request_size);
     RequestHeader *request = map_shm_id(request_shm_id, request_size);
     MemChunk key;
     key.len = request->key_len;
     key.content = malloc(key.len);
     memcpy(key.content, request->request_buffer, key.len);
+    server_log("worker %d: processing request with shm_id %d, size %ld", id, request_shm_id, request_size);
     switch (request->request_type) {
     case READ: {
         MemChunk value = hashtable_search(server_table, key);
@@ -52,7 +52,6 @@ void process_request(int request_shm_id, size_t request_size) {
         MemChunk value;
         value.len = request->value_len;
         value.content = malloc(value.len);
-        printf("INSERT, key len %ld, value len %ld\n", key.len, value.len);
         memcpy(value.content, request->request_buffer + key.len, value.len);
         hashtable_insert(server_table, key, value);
         server_log("finished insertion");
